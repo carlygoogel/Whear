@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyBxT12S8twvVMCNMa7X84unNFoZUxiNGZ4</string>
+	<key>GCM_SENDER_ID</key>
+	<string>875392641</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.carlygoogel.Whear</string>
+	<key>PROJECT_ID</key>
+	<string>whear-fb2ac</string>
+	<key>STORAGE_BUCKET</key>
+	<string>whear-fb2ac.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:875392641:ios:8fdae0a7ff562385e02780</string>
+</dict>
+</plist>
