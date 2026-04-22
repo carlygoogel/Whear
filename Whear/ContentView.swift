@@ -13,7 +13,6 @@ struct ContentView: View {
             }
         }
         .environmentObject(vm)
-        // Single unregistered tag → open AddItemView pre-filled with that tag
         .sheet(item: Binding<WrappedString?>(
             get: { vm.pendingRegistrationTagId.map { WrappedString(value: $0) } },
             set: { _ in vm.dismissPendingTag() }
@@ -21,7 +20,6 @@ struct ContentView: View {
             AddItemView(prefilledTagId: wrapped.value)
                 .environmentObject(vm)
         }
-        // Multiple unregistered tags → generic alert
         .alert(
             "Multiple Unregistered Tags",
             isPresented: $vm.showMultipleUnregisteredAlert
@@ -56,12 +54,12 @@ struct ContentView: View {
 
     private var customTabBar: some View {
         HStack(spacing: 0) {
-            TabBarItem(icon: "house",    label: "Home",    index: 0, selected: $vm.selectedTab)
-            TabBarItem(icon: "tshirt",   label: "Closet",  index: 1, selected: $vm.selectedTab,
+            TabBarItem(icon: "house",           label: "Home",    index: 0, selected: $vm.selectedTab)
+            TabBarItem(icon: "tshirt",          label: "Closet",  index: 1, selected: $vm.selectedTab,
                        badge: vm.alertCount > 0 ? "\(vm.alertCount)" : nil)
             Spacer()
-            TabBarItem(icon: "sparkles", label: "Outfits", index: 3, selected: $vm.selectedTab)
-            TabBarItem(icon: "bag",      label: "Shop",    index: 4, selected: $vm.selectedTab)
+            TabBarItem(icon: "sparkles", label: "Outfits", index: 3, selected: $vm.selectedTab, selectedIcon: "sparkles")
+            TabBarItem(icon: "bag",             label: "Shop",    index: 4, selected: $vm.selectedTab)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 10)
@@ -90,7 +88,6 @@ struct ContentView: View {
 
 // MARK: - Helpers
 
-/// Thin Identifiable wrapper so a plain String can drive .sheet(item:)
 private struct WrappedString: Identifiable {
     let value: String
     var id: String { value }
@@ -104,8 +101,10 @@ private struct TabBarItem: View {
     let index: Int
     @Binding var selected: Int
     var badge: String? = nil
+    var selectedIcon: String? = nil   // override the default "\(icon).fill"
 
     private var isSelected: Bool { selected == index }
+    private var activeIcon: String { isSelected ? (selectedIcon ?? "\(icon).fill") : icon }
 
     var body: some View {
         Button {
@@ -113,7 +112,7 @@ private struct TabBarItem: View {
         } label: {
             VStack(spacing: 4) {
                 ZStack(alignment: .topTrailing) {
-                    Image(systemName: isSelected ? "\(icon).fill" : icon)
+                    Image(systemName: activeIcon)
                         .font(.system(size: 22))
                         .foregroundColor(isSelected ? .whearPrimary : .whearSubtext)
                     if let badge {

@@ -1,5 +1,41 @@
 import SwiftUI
 
+// MARK: - Item Image (cached, with color swatch fallback)
+
+struct ItemImage: View {
+    let item: ClothingItem
+    var size: CGFloat = 48
+    var cornerRadius: CGFloat = 10
+
+    var body: some View {
+        Group {
+            if let urlString = item.imageUrl, let url = URL(string: urlString) {
+                CachedAsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: size, height: size)
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                } placeholder: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .fill(item.displayColor.opacity(0.35))
+                            .frame(width: size, height: size)
+                        ProgressView()
+                            .scaleEffect(0.7)
+                            .tint(.white)
+                    }
+                } failure: {
+                    ColorSwatch(color: item.displayColor, size: size, cornerRadius: cornerRadius)
+                }
+            } else {
+                ColorSwatch(color: item.displayColor, size: size, cornerRadius: cornerRadius)
+            }
+        }
+        .frame(width: size, height: size)
+    }
+}
+
 // MARK: - Status Badge
 
 struct StatusBadge: View {

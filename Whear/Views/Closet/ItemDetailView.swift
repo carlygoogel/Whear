@@ -18,29 +18,18 @@ struct ItemDetailView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
 
-                    // Hero image / swatch
                     heroSection
 
                     VStack(alignment: .leading, spacing: 24) {
-
-                        // Name + brand
                         headerInfo
-
-                        // Status row
                         statusRow
-
-                        // Stats
                         statsRow
-
-                        // Metadata
                         metadataSection
 
-                        // RFID info
                         if localItem.tagId != nil {
                             rfidSection
                         }
 
-                        // Action buttons
                         actionButtons
 
                         Spacer(minLength: 32)
@@ -94,16 +83,46 @@ struct ItemDetailView: View {
 
     private var heroSection: some View {
         ZStack {
+            // Background tint
             Rectangle()
                 .fill(localItem.displayColor.opacity(0.15))
-                .frame(height: 220)
+                .frame(height: 260)
 
-            VStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(localItem.displayColor)
-                    .frame(width: 120, height: 120)
-                    .shadow(color: localItem.displayColor.opacity(0.4), radius: 20, x: 0, y: 8)
+            if let urlString = localItem.imageUrl, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 260)
+                            .clipped()
+                    case .failure:
+                        fallbackHero
+                    case .empty:
+                        ZStack {
+                            localItem.displayColor.opacity(0.15)
+                            ProgressView()
+                                .tint(.whearPrimary)
+                        }
+                        .frame(height: 260)
+                    @unknown default:
+                        fallbackHero
+                    }
+                }
+            } else {
+                fallbackHero
             }
+        }
+    }
+
+    private var fallbackHero: some View {
+        VStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(localItem.displayColor)
+                .frame(width: 120, height: 120)
+                .shadow(color: localItem.displayColor.opacity(0.4), radius: 20, x: 0, y: 8)
         }
     }
 

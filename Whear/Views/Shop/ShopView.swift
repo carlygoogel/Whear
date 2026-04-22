@@ -15,23 +15,14 @@ struct ShopView: View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
-
-                    // Header
                     navHeader
+                    reasonFilter.padding(.bottom, 16)
 
-                    // Filter chips
-                    reasonFilter
-                        .padding(.bottom, 16)
-
-                    // Complete look section (always shown when no filter)
                     if selectedReason == nil {
-                        completeYourLook
-                            .padding(.bottom, 20)
+                        completeYourLook.padding(.bottom, 20)
                     }
 
-                    // Grid
                     shopGrid
-
                     Spacer(minLength: 90)
                 }
             }
@@ -85,11 +76,13 @@ struct ShopView: View {
     private var completeYourLook: some View {
         VStack(alignment: .leading, spacing: 14) {
             SectionHeader(title: "Complete Your Look")
-
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
                     ForEach(vm.items.prefix(3)) { wardrobeItem in
-                        CompleteLookCard(item: wardrobeItem, suggestions: shopItems.filter { $0.pairsWith == wardrobeItem.name })
+                        CompleteLookCard(
+                            item: wardrobeItem,
+                            suggestions: shopItems.filter { $0.pairsWith == wardrobeItem.name }
+                        )
                     }
                 }
                 .padding(.horizontal)
@@ -102,7 +95,6 @@ struct ShopView: View {
     private var shopGrid: some View {
         VStack(alignment: .leading, spacing: 14) {
             SectionHeader(title: selectedReason?.rawValue ?? "All Picks")
-
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                 ForEach(filteredItems) { item in
                     ShopItemCard(item: item)
@@ -122,7 +114,7 @@ private struct CompleteLookCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                ColorSwatch(color: item.displayColor, size: 28, cornerRadius: 6)
+                ItemImage(item: item, size: 28, cornerRadius: 6)
                 Text("Pairs with \(item.name)")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.whearText)
@@ -135,9 +127,7 @@ private struct CompleteLookCard: View {
             HStack(spacing: 8) {
                 ForEach(suggestions.prefix(2)) { s in
                     VStack(spacing: 5) {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(s.displayColor)
-                            .frame(width: 52, height: 52)
+                        ShopItemThumbnail(item: s, size: 52)
                         Text(s.brand)
                             .font(.system(size: 9))
                             .foregroundColor(.whearSubtext)
@@ -165,11 +155,9 @@ struct ShopItemCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             ZStack(alignment: .topTrailing) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(item.displayColor.opacity(0.8))
+                ShopItemThumbnail(item: item, size: nil)
                     .aspectRatio(1, contentMode: .fit)
 
-                // Reason badge
                 Text(item.reason.rawValue)
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundColor(.white)
@@ -206,7 +194,6 @@ struct ShopItemCard: View {
                     Text(item.formattedPrice)
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.whearText)
-
                     if let rating = item.rating {
                         Spacer()
                         Image(systemName: "star.fill")
@@ -219,9 +206,7 @@ struct ShopItemCard: View {
                 }
             }
 
-            Button {
-                // Shop link
-            } label: {
+            Button { } label: {
                 Text("Shop")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white)
@@ -235,5 +220,43 @@ struct ShopItemCard: View {
         .background(Color.whearBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .shadow(color: .black.opacity(0.06), radius: 6, x: 0, y: 2)
+    }
+}
+
+// MARK: - Shop Item Thumbnail
+// Shows the real image when imageUrl is set; falls back to the colour swatch.
+
+private struct ShopItemThumbnail: View {
+    let item: ShopItem
+    /// Pass nil to let the view fill its parent (for the grid card hero).
+    var size: CGFloat?
+
+    var body: some View {
+        if let urlString = item.imageUrl, let url = URL(string: urlString) {
+            CachedAsyncImage(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(RoundedRectangle(cornerRadius: size != nil ? 8 : 12))
+            } placeholder: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: size != nil ? 8 : 12)
+                        .fill(item.displayColor.opacity(0.35))
+                        .frame(width: size, height: size)
+                    ProgressView().scaleEffect(0.7).tint(.white)
+                }
+            } failure: {
+                colorFallback
+            }
+        } else {
+            colorFallback
+        }
+    }
+
+    private var colorFallback: some View {
+        RoundedRectangle(cornerRadius: size != nil ? 8 : 12)
+            .fill(item.displayColor.opacity(0.8))
+            .frame(width: size, height: size)
     }
 }

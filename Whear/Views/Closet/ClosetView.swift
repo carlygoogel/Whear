@@ -23,19 +23,11 @@ struct ClosetView: View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
                 VStack(spacing: 0) {
-                    // Custom nav bar
                     navBar
-
-                    // Search
                     searchBar
-
-                    // Status filter chips
                     statusFilterRow
-
-                    // Category filter
                     categoryFilterRow
 
-                    // Items list / grid
                     if filteredItems.isEmpty {
                         Spacer()
                         EmptyStateView(
@@ -54,7 +46,6 @@ struct ClosetView: View {
                 }
                 .background(Color.whearBackground)
 
-                // FAB
                 addButton
             }
             .navigationBarHidden(true)
@@ -84,10 +75,8 @@ struct ClosetView: View {
             Spacer()
 
             HStack(spacing: 14) {
-                // RFID status
                 RFIDStatusBadge()
 
-                // Alert bell
                 Button {
                     showAlerts = true
                 } label: {
@@ -109,7 +98,6 @@ struct ClosetView: View {
                     }
                 }
 
-                // Grid / list toggle
                 Button {
                     withAnimation(.spring(response: 0.3)) { isGridView.toggle() }
                 } label: {
@@ -285,22 +273,8 @@ struct ItemRowView: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            // Color swatch or image
-            Group {
-                if let _ = item.imageUrl {
-                    // AsyncImage placeholder
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(item.displayColor)
-                        .overlay(
-                            Image(systemName: "photo")
-                                .foregroundColor(.white.opacity(0.6))
-                                .font(.system(size: 14))
-                        )
-                } else {
-                    ColorSwatch(color: item.displayColor, size: 48, cornerRadius: 10)
-                }
-            }
-            .frame(width: 48, height: 48)
+            // Photo if available, otherwise color swatch
+            ItemImage(item: item, size: 48, cornerRadius: 10)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.name)
@@ -345,13 +319,45 @@ struct GridItemView: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(item.displayColor)
-                .aspectRatio(1, contentMode: .fit)
-                .overlay(alignment: .topTrailing) {
-                    StatusBadge(status: item.status, compact: true)
-                        .padding(6)
+            GeometryReader { geo in
+                let side = geo.size.width
+                if let urlString = item.imageUrl, let url = URL(string: urlString) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: side, height: side)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                        case .failure:
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(item.displayColor)
+                                .frame(width: side, height: side)
+                        case .empty:
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(item.displayColor.opacity(0.3))
+                                    .frame(width: side, height: side)
+                                ProgressView().scaleEffect(0.7)
+                            }
+                        @unknown default:
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(item.displayColor)
+                                .frame(width: side, height: side)
+                        }
+                    }
+                } else {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(item.displayColor)
+                        .frame(width: side, height: side)
                 }
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .overlay(alignment: .topTrailing) {
+                StatusBadge(status: item.status, compact: true)
+                    .padding(6)
+            }
 
             Text(item.name)
                 .font(.system(size: 11, weight: .medium))

@@ -18,25 +18,16 @@ struct HomeView: View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 28) {
-
-                    // Hero header
                     headerSection
-
-                    // Stats row
                     statsSection
-
-                    // RFID status card
                     rfidStatusCard
 
-                    // Recent activity
                     recentActivity
 
-                    // Quick access — missing items
                     if !vm.missing.isEmpty {
                         missingSection
                     }
 
-                    // Most worn
                     mostWorn
 
                     Spacer(minLength: 90)
@@ -78,8 +69,8 @@ struct HomeView: View {
     private var statsSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                StatCard(value: "\(vm.items.count)", label: "Total Items",  color: .whearText,    icon: "tshirt.fill")
-                StatCard(value: "\(vm.inCloset.count)",  label: "In Closet",   color: .statusCloset, icon: "house.fill")
+                StatCard(value: "\(vm.items.count)", label: "Total Items",  color: .whearText,     icon: "tshirt.fill")
+                StatCard(value: "\(vm.inCloset.count)",  label: "In Closet",   color: .statusCloset,  icon: "house.fill")
                 StatCard(value: "\(vm.inLaundry.count)", label: "Laundry",     color: .statusLaundry, icon: "washer.fill")
                 StatCard(value: "\(vm.missing.count)",   label: "Missing",     color: .statusMissing, icon: "questionmark.circle.fill")
             }
@@ -161,7 +152,7 @@ struct HomeView: View {
             VStack(spacing: 0) {
                 ForEach(vm.missing) { item in
                     HStack(spacing: 12) {
-                        ColorSwatch(color: item.displayColor, size: 36, cornerRadius: 8)
+                        ItemImage(item: item, size: 36, cornerRadius: 8)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.name)
                                 .font(.system(size: 14, weight: .medium))
@@ -245,7 +236,7 @@ private struct ActivityRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ColorSwatch(color: item.displayColor, size: 36, cornerRadius: 8)
+            ItemImage(item: item, size: 36, cornerRadius: 8)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
                     .font(.system(size: 14, weight: .medium))
@@ -266,7 +257,7 @@ private struct WornItemCard: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            ColorSwatch(color: item.displayColor, size: 64, cornerRadius: 12)
+            ItemImage(item: item, size: 64, cornerRadius: 12)
             Text(item.name)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.whearText)
