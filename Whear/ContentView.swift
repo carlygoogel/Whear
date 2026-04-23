@@ -13,6 +13,7 @@ struct ContentView: View {
             }
         }
         .environmentObject(vm)
+        // Single unregistered tag detected (auto on load OR via FAB tap) → AddItemView pre-filled
         .sheet(item: Binding<WrappedString?>(
             get: { vm.pendingRegistrationTagId.map { WrappedString(value: $0) } },
             set: { _ in vm.dismissPendingTag() }
@@ -20,6 +21,12 @@ struct ContentView: View {
             AddItemView(prefilledTagId: wrapped.value)
                 .environmentObject(vm)
         }
+        // FAB tap with no unregistered tags → blank AddItemView
+        .sheet(isPresented: $vm.showRegularAddItem) {
+            AddItemView()
+                .environmentObject(vm)
+        }
+        // Multiple unregistered tags → generic alert
         .alert(
             "Multiple Unregistered Tags",
             isPresented: $vm.showMultipleUnregisteredAlert
@@ -58,7 +65,8 @@ struct ContentView: View {
             TabBarItem(icon: "tshirt",          label: "Closet",  index: 1, selected: $vm.selectedTab,
                        badge: vm.alertCount > 0 ? "\(vm.alertCount)" : nil)
             Spacer()
-            TabBarItem(icon: "sparkles", label: "Outfits", index: 3, selected: $vm.selectedTab, selectedIcon: "sparkles")
+            TabBarItem(icon: "sparkles",        label: "Outfits", index: 3, selected: $vm.selectedTab,
+                       selectedIcon: "sparkles")
             TabBarItem(icon: "bag",             label: "Shop",    index: 4, selected: $vm.selectedTab)
         }
         .frame(maxWidth: .infinity)
@@ -69,8 +77,9 @@ struct ContentView: View {
                 .shadow(color: .black.opacity(0.08), radius: 16, x: 0, y: -4)
         )
         .overlay(alignment: .top) {
+            // FAB: reconcile first, then route to the right add flow
             Button {
-                vm.selectedTab = 1
+                Task { await vm.handleAddButtonTap() }
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 22, weight: .semibold))
@@ -101,7 +110,7 @@ private struct TabBarItem: View {
     let index: Int
     @Binding var selected: Int
     var badge: String? = nil
-    var selectedIcon: String? = nil   // override the default "\(icon).fill"
+    var selectedIcon: String? = nil
 
     private var isSelected: Bool { selected == index }
     private var activeIcon: String { isSelected ? (selectedIcon ?? "\(icon).fill") : icon }

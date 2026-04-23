@@ -11,12 +11,13 @@ final class AppViewModel: ObservableObject {
     @Published var selectedTab: Int           = 0
     @Published var errorMessage: String?      = nil
 
-    // Unregistered tag state
-    /// Exactly one tag in scanner has no matching item → prompt the user to register it
-    @Published var pendingRegistrationTagId: String?  = nil
-    /// Multiple tags in scanner have no matching item → show an alert
+    // Unregistered tag state — auto-detected on scanner sync
+    @Published var pendingRegistrationTagId: String?   = nil
     @Published var showMultipleUnregisteredAlert: Bool = false
     @Published var unregisteredTagIds: [String]        = []
+
+    // Regular add-item sheet — triggered by FAB when no unregistered tags exist
+    @Published var showRegularAddItem: Bool = false
 
     private var firestoreListener:  ListenerRegistration?
     private var scannerListener:    ListenerRegistration?
@@ -50,7 +51,6 @@ final class AppViewModel: ObservableObject {
 
     // MARK: - Listeners
 
-    /// Live updates to the items collection → refreshes the UI list.
     func startListeningToItems() {
         firestoreListener = firebase.listenToItems { [weak self] newItems in
             guard let self else { return }
@@ -59,8 +59,6 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    /// Live updates to the scanner collection → triggers reconciliation whenever
-    /// the ESP32 writes new scan results.
     func startListeningToScanner() {
         scannerListener = firebase.listenToScanner { [weak self] _ in
             guard let self else { return }
@@ -70,7 +68,6 @@ final class AppViewModel: ObservableObject {
 
     // MARK: - Reconciliation
 
-    /// Compares scanner ↔ items and handles unregistered tags.
     func runReconcile() async {
         do {
             let result = try await firebase.reconcile()
@@ -89,11 +86,36 @@ final class AppViewModel: ObservableObject {
         case 0:
             break
         case 1:
-            // Prompt user to register this one new tag
             pendingRegistrationTagId = tagIds[0]
         default:
-            // More than one unknown tag — show a generic alert
             showMultipleUnregisteredAlert = true
+        }
+    }
+
+    // MARK: - FAB tap logic
+    //
+    // Priority order:
+    //   1. Exactly one unregistered tag in scanner → open AddItemView pre-filled with that tag
+    //   2. Multiple unregistered tags             → show the multi-tag alert
+    //   3. No unregistered tags                   → open a blank AddItemView
+    //
+    // We re-reconcile first so the state is always fresh at the moment the
+    // user taps, not stale from the last background poll.
+
+    func handleAddButtonTap() async {
+        // Run a fresh reconcile so unregisteredTagIds reflects the current scanner
+        await runReconcile()
+
+        switch unregisteredTagIds.count {
+        case 0:
+            // Nothing unregistered — open the regular blank add sheet
+            showRegularAddItem = true
+        case 1:
+            // pendingRegistrationTagId was already set by runReconcile → sheet auto-opens
+            break
+        default:
+            // showMultipleUnregisteredAlert was already set by runReconcile → alert auto-shows
+            break
         }
     }
 
@@ -114,10 +136,8 @@ final class AppViewModel: ObservableObject {
                 newItem.imageUrl = try await firebase.uploadImage(img, for: newItem.id)
             }
             try await firebase.saveItem(newItem)
-            // After adding a tagged item, reconcile immediately so status is correct
             if newItem.tagId != nil { await runReconcile() }
         } catch {
-            // Optimistic local fallback
             items.insert(newItem, at: 0)
         }
     }
@@ -140,13 +160,11 @@ final class AppViewModel: ObservableObject {
 
     // MARK: - Tag registration flow
 
-    /// Called after the user fills in item details for a pending unregistered tag.
     func registerPendingTag(for item: ClothingItem, image: UIImage?) async {
         await addItem(item, image: image)
         pendingRegistrationTagId = nil
     }
 
-    /// Dismiss the pending registration without assigning (user chose to ignore).
     func dismissPendingTag() {
         pendingRegistrationTagId = nil
     }

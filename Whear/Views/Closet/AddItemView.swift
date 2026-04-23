@@ -391,7 +391,7 @@ private struct FormField: View {
     }
 }
 
-private struct PhotoSourceButton: View {
+struct PhotoSourceButton: View {
     let icon: String; let label: String; let action: () -> Void
     var body: some View { Button(action: action) { PhotoSourceButtonLabel(icon: icon, label: label) } }
 }

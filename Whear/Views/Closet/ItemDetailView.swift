@@ -6,6 +6,7 @@ struct ItemDetailView: View {
     let item: ClothingItem
 
     @State private var showEditStatus = false
+    @State private var showEdit = false
     @State private var localItem: ClothingItem
 
     init(item: ClothingItem) {
@@ -53,17 +54,24 @@ struct ItemDetailView: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        Task {
-                            var updated = localItem
-                            updated.isFavorite.toggle()
-                            localItem = updated
-                            await vm.addItem(updated, image: nil)
+                    HStack(spacing: 16) {
+                        Button { showEdit = true } label: {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 17))
+                                .foregroundColor(.whearText)
                         }
-                    } label: {
-                        Image(systemName: localItem.isFavorite ? "heart.fill" : "heart")
-                            .font(.system(size: 18))
-                            .foregroundColor(localItem.isFavorite ? .statusMissing : .whearText)
+                        Button {
+                            Task {
+                                var updated = localItem
+                                updated.isFavorite.toggle()
+                                localItem = updated
+                                await vm.addItem(updated, image: nil)
+                            }
+                        } label: {
+                            Image(systemName: localItem.isFavorite ? "heart.fill" : "heart")
+                                .font(.system(size: 18))
+                                .foregroundColor(localItem.isFavorite ? .statusMissing : .whearText)
+                        }
                     }
                 }
             }
@@ -75,6 +83,12 @@ struct ItemDetailView: View {
                     }
                 }
                 Button("Cancel", role: .cancel) {}
+            }
+            .sheet(isPresented: $showEdit) {
+                EditItemView(item: localItem) { updated in
+                    localItem = updated
+                }
+                .environmentObject(vm)
             }
         }
     }
