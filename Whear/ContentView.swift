@@ -72,10 +72,12 @@ struct ContentView: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 10)
         .padding(.vertical, 10)
-        .background(
-            Color.whearBackground
-                .shadow(color: .black.opacity(0.08), radius: 16, x: 0, y: -4)
-        )
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.black.opacity(0.06))
+                .frame(height: 0.5)
+        }
         .overlay(alignment: .top) {
             // FAB: reconcile first, then route to the right add flow
             Button {
