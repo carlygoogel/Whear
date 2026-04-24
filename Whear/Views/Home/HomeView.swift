@@ -34,6 +34,7 @@ struct HomeView: View {
                 }
                 .padding(.top, 8)
             }
+            .refreshable { await vm.refreshFromRFID() }   // ← add this
             .background(Color.whearBackground)
             .navigationBarHidden(true)
         }
@@ -127,10 +128,10 @@ struct HomeView: View {
     private var recentActivity: some View {
         VStack(alignment: .leading, spacing: 14) {
             SectionHeader(title: "Recent Activity")
-
             VStack(spacing: 0) {
                 ForEach(vm.items.prefix(4)) { item in
                     ActivityRow(item: item)
+                        .id("\(item.id)-\(item.status.rawValue)")  // ← force re-render on status change
                     if item.id != vm.items.prefix(4).last?.id {
                         Divider().padding(.leading, 60)
                     }

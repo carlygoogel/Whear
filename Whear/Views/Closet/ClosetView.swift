@@ -182,6 +182,7 @@ struct ClosetView: View {
         List {
             ForEach(filteredItems) { item in
                 ItemRowView(item: item)
+                    .id("\(item.id)-\(item.status.rawValue)")  // ← add this
                     .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.whearBackground)
@@ -190,7 +191,6 @@ struct ClosetView: View {
                         Button(role: .destructive) {
                             Task { await vm.deleteItem(item) }
                         } label: { Label("Delete", systemImage: "trash") }
-
                         Button {
                             Task { await vm.updateStatus(item, status: .laundry) }
                         } label: { Label("Laundry", systemImage: "washer") }
@@ -209,14 +209,13 @@ struct ClosetView: View {
         .refreshable { await vm.refreshFromRFID() }
     }
 
-    // MARK: - Grid view
-
     private var gridView: some View {
         let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
         return ScrollView {
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(filteredItems) { item in
                     GridItemView(item: item)
+                        .id("\(item.id)-\(item.status.rawValue)")  // ← add this
                         .onTapGesture { selectedItem = item }
                 }
             }

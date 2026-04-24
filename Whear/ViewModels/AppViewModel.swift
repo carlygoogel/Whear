@@ -10,6 +10,8 @@ final class AppViewModel: ObservableObject {
     @Published var alertCount: Int            = 0
     @Published var selectedTab: Int           = 0
     @Published var errorMessage: String?      = nil
+    @Published private(set) var isReconciling: Bool = false
+
 
     // Unregistered tag state — auto-detected on scanner sync
     @Published var pendingRegistrationTagId: String?   = nil
@@ -54,6 +56,11 @@ final class AppViewModel: ObservableObject {
     func startListeningToItems() {
         firestoreListener = firebase.listenToItems { [weak self] newItems in
             guard let self else { return }
+            // Skip Firestore snapshots that arrive while reconcile is in
+            // progress — they carry pre-reconcile statuses and would undo
+            // the local patch, causing Recent Activity / Missing Items to
+            // show stale data while the stat cards already look correct.
+            guard !self.isReconciling else { return }
             if !newItems.isEmpty { self.items = newItems }
             self.alertCount = newItems.filter { $0.status == .missing }.count
         }
@@ -68,13 +75,45 @@ final class AppViewModel: ObservableObject {
 
     // MARK: - Reconciliation
 
+   // func runReconcile() async {
+     //   do {
+     //       let result = try await firebase.reconcile()
+    //        handleUnregistered(result.unregistered)
+    //    } catch {
+    //        errorMessage = "Sync error: \(error.localizedDescription)"
+    //    }
+   // }
+    // MARK: - Reconciliation
+
     func runReconcile() async {
+        isReconciling = true
         do {
             let result = try await firebase.reconcile()
             handleUnregistered(result.unregistered)
+
+            // 1. Patch immediately so every section (stats, Recent Activity,
+            //    Missing Items) updates in the same render pass.
+            let inClosetSet = Set(result.inCloset)
+            let missingSet  = Set(result.missing)
+            items = items.map { item in
+                guard let tagId = item.tagId else { return item }
+                var updated = item
+                if inClosetSet.contains(tagId)      { updated.status = .closet  }
+                else if missingSet.contains(tagId)  { updated.status = .missing }
+                return updated
+            }
+            alertCount = items.filter { $0.status == .missing }.count
+
+            // 2. Fetch the freshly-committed server state so the listener's
+            //    next snapshot won't be treated as newer than what we know.
+            if let fresh = try? await firebase.fetchItems(), !fresh.isEmpty {
+                items = fresh
+                alertCount = fresh.filter { $0.status == .missing }.count
+            }
         } catch {
             errorMessage = "Sync error: \(error.localizedDescription)"
         }
+        isReconciling = false
     }
 
     private func handleUnregistered(_ tagIds: [String]) {
@@ -122,7 +161,15 @@ final class AppViewModel: ObservableObject {
     // MARK: - RFID manual refresh
 
     func refreshFromRFID() async {
-        await rfid.triggerManualScan()
+        // Reconcile against current Firestore scanner state immediately —
+        // no RFID round-trip needed for the status update.
+        await runReconcile()
+        // If the reader is live, also push a fresh scan so the next
+        // reconcile has up-to-date tag data.
+        if rfid.isConnected {
+            await rfid.triggerManualScan()
+            await runReconcile()
+        }
     }
 
     // MARK: - Item mutations
